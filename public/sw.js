@@ -1,4 +1,4 @@
-const CACHE = 'pause-v3';
+const CACHE = 'pause-v4';   // bumped → forces old cache eviction on all devices
 
 self.addEventListener('install', () => self.skipWaiting());
 
