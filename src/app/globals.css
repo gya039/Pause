@@ -1,49 +1,606 @@
+/* ─────────────────────────────────────────────────────────────
+   PAUSE · globals.css
+   Font:   Plus Jakarta Sans (variable 200–800, normal + italic)
+   Light:  warm off-white #F5F0EB, forest green #1C4A30 accent
+   Dark:   warm near-black #0C0A09, lighter green #4A9B6A
+   Rule:   one accent colour = held/saved/CTA only. Nothing else.
+   ───────────────────────────────────────────────────────────── */
+
+/* ── Light theme (default) ── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --sans:  var(--font-jakarta, 'Plus Jakarta Sans', system-ui, sans-serif);
+  --font:  var(--sans);
+  --serif: var(--sans);
+  --mono:  var(--sans);
+
+  /* Surfaces — warm off-white, not clinical */
+  --paper:   #F5F0EB;
+  --paper-2: #FFFFFF;
+  --paper-3: #EDE8E2;
+  --paper-4: #E2DDD6;
+
+  /* Ink — warm near-black */
+  --ink:   #0C0A09;
+  --ink-2: #4A4440;
+  --ink-3: #9A9490;
+  --ink-4: #C8C3BE;
+
+  /* Rules */
+  --rule:   rgba(12,10,9,0.09);
+  --rule-2: rgba(12,10,9,0.05);
+
+  /* Accent — forest green. Means: held, saved, yours. */
+  --accent:      #1C4A30;
+  --accent-ink:  #1C4A30;
+  --accent-soft: #E2EFE7;
+  --accent-fg:   #FFFFFF;
+
+  /* Semantic */
+  --good:  #1C4A30;   /* held / saved  */
+  --warn:  #B83232;   /* bought / danger */
+  --cool:  #2B5080;   /* calm mood */
+  --amber: #8A5A10;   /* bored mood */
+
+  /* Backward-compat aliases */
+  --bg:        var(--paper);
+  --surface:   var(--paper-2);
+  --surface2:  var(--paper-3);
+  --border:    var(--rule);
+  --t1:        var(--ink);
+  --t2:        var(--ink-2);
+  --t3:        var(--ink-3);
+  --accent-bg: var(--accent-soft);
+  --accent-hi: var(--accent-ink);
+  --danger:    var(--warn);
+  --warning:   var(--warn);
+  --success:   var(--good);
+
+  /* Status badges */
+  --saved-bg:    #E2EFE7;
+  --saved-text:  #1C4A30;
+  --bought-bg:   #F5E5E5;
+  --bought-text: #B83232;
+
+  /* Glass */
+  --bg-glass:  rgba(245,240,235,0.94);
+  --nav-glass: rgba(245,240,235,0.97);
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(12,10,9,0.07);
+  --shadow-sm: 0 1px 3px rgba(12,10,9,0.09), 0 2px 8px rgba(12,10,9,0.06);
+  --shadow:    0 2px 8px rgba(12,10,9,0.11), 0 6px 20px rgba(12,10,9,0.07);
+  --shadow-lg: 0 8px 24px rgba(12,10,9,0.14), 0 16px 40px rgba(12,10,9,0.09);
+
+  /* Layout */
+  --nav-h:  64px;
+  --max-w:  480px;
+  --safe-top:    env(safe-area-inset-top,    0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Radius */
+  --r-xs:   4px;
+  --r-sm:   8px;
+  --r:      12px;
+  --r-lg:   18px;
+  --r-xl:   24px;
+  --r-full: 999px;
+
+  /* Mood colours (log/add page picker) */
+  --mood-tired-bg:    #E8E6F0; --mood-tired-text:   #3A3680;
+  --mood-bored-bg:    #EEE8DC; --mood-bored-text:   #6A5020;
+  --mood-anxious-bg:  #F5E5E2; --mood-anxious-text: #8A2020;
+  --mood-happy-bg:    #E2EFE7; --mood-happy-text:   #1C4A30;
+  --mood-calm-bg:     #E2E8F5; --mood-calm-text:    #1A3A70;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ── Dark theme ── */
+[data-theme="dark"] {
+  --paper:   #0C0A09;
+  --paper-2: #161210;
+  --paper-3: #201C1A;
+  --paper-4: #2A2624;
+
+  --ink:   #EDE5D8;
+  --ink-2: #A09585;
+  --ink-3: #5A5450;
+  --ink-4: #302C28;
+
+  --rule:   rgba(237,229,216,0.08);
+  --rule-2: rgba(237,229,216,0.04);
+
+  --accent:      #4A9B6A;
+  --accent-ink:  #6EC990;
+  --accent-soft: #0A1E12;
+  --accent-fg:   #0C0A09;
+
+  --good:  #6EC990;
+  --warn:  #E07070;
+  --cool:  #6090D0;
+  --amber: #C8882A;
+
+  --bg:        var(--paper);
+  --surface:   var(--paper-2);
+  --surface2:  var(--paper-3);
+  --border:    var(--rule);
+  --t1:        var(--ink);
+  --t2:        var(--ink-2);
+  --t3:        var(--ink-3);
+  --accent-bg: var(--accent-soft);
+  --accent-hi: var(--accent-ink);
+  --danger:    var(--warn);
+  --warning:   var(--warn);
+  --success:   var(--good);
+
+  --saved-bg:    #0A1E12;
+  --saved-text:  var(--good);
+  --bought-bg:   #200A0A;
+  --bought-text: var(--warn);
+
+  --bg-glass:  rgba(12,10,9,0.94);
+  --nav-glass: rgba(12,10,9,0.97);
+
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.40);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.44), 0 4px 16px rgba(0,0,0,0.28);
+  --shadow:    0 4px 12px rgba(0,0,0,0.50), 0 12px 32px rgba(0,0,0,0.32);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.58), 0 24px 56px rgba(0,0,0,0.40);
+
+  --mood-tired-bg:    #161626; --mood-tired-text:   #8888DD;
+  --mood-bored-bg:    #1A1810; --mood-bored-text:   #C8A060;
+  --mood-anxious-bg:  #200C0C; --mood-anxious-text: #E08080;
+  --mood-happy-bg:    #0A1A10; --mood-happy-text:   #6EC990;
+  --mood-calm-bg:     #0C1620; --mood-calm-text:    #6090D0;
 }
 
-html {
-  height: 100%;
-}
-
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+/* ─────────────────────────────── Reset ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100%; }
+html, body {
+  font-family:            var(--sans);
+  font-optical-sizing:    auto;
+  background:             var(--paper);
+  color:                  var(--ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering:         optimizeLegibility;
+  overscroll-behavior-y:  none;
+  overflow-x:             hidden;
 }
-
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+body {
+  max-width:  var(--max-w);
+  margin:     0 auto;
+  min-height: 100%;
+  font-size:  16px;
+  line-height: 1.55;
 }
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; }
+input, select, textarea { font-family: inherit; font-size: 16px; }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration:  0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
+}
+
+/* ─────────────── Screen scaffold ─── */
+.p-screen {
+  height:         100dvh;
+  width:          100%;
+  display:        flex;
+  flex-direction: column;
+  overflow:       hidden;
+  background:     var(--paper);
+  color:          var(--ink);
+}
+.p-body {
+  flex:                       1;
+  overflow-y:                 auto;
+  -webkit-overflow-scrolling: touch;
+  padding-top:                max(var(--safe-top), 0px);
+  overscroll-behavior-y:      contain;
+}
+.p-body::-webkit-scrollbar { display: none; }
+
+/* ─────────────── Eyebrow — small caps label ─── */
+.eyebrow {
+  font-family:    var(--sans);
+  font-size:      10px;
+  font-weight:    500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color:          var(--ink-3);
+  line-height:    1.4;
+}
+.eyebrow.ink    { color: var(--ink); }
+.eyebrow.accent { color: var(--accent-ink); }
+
+/* ─────────────── Display — big headings ─── */
+.display {
+  font-family:    var(--sans);
+  font-weight:    700;
+  letter-spacing: -0.03em;
+  line-height:    1.05;
+  color:          var(--ink);
+}
+
+/* ─────────────── Mood word ─── */
+.mood {
+  font-family:  var(--sans);
+  font-style:   italic;
+  font-weight:  500;
+  font-size:    14px;
+  line-height:  1.4;
+  letter-spacing: -0.01em;
+}
+.mood::after { content: "."; }
+
+/* ─────────────── Figure — currency numbers ─── */
+/* 800 weight makes the number feel like a statement */
+.figure {
+  font-family:          var(--sans);
+  font-weight:          800;
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing:       -0.04em;
+  line-height:          1;
+  color:                var(--ink);
+}
+.figure .curr {
+  font-size:      0.42em;
+  vertical-align: 0.62em;
+  margin-right:   2px;
+  color:          var(--ink-3);
+  font-weight:    400;
+}
+.figure .cents {
+  font-size:      0.38em;
+  vertical-align: 0.84em;
+  letter-spacing: 0;
+  margin-left:    1px;
+  color:          var(--ink-3);
+  font-weight:    400;
+}
+
+/* ─────────────── Rules ─── */
+.rule     { height: 1px; background: var(--rule);   width: 100%; }
+.rule.dim { background: var(--rule-2); }
+
+/* ─────────────── Bar ─── */
+.bar {
+  position:      relative;
+  height:        5px;
+  background:    var(--paper-3);
+  border-radius: 3px;
+  overflow:      hidden;
+}
+.bar > i {
+  position:      absolute;
+  left: 0; top: 0; bottom: 0;
+  background:    var(--accent);
+  display:       block;
+  border-radius: 3px;
+}
+
+/* ─────────────── Toggle ─── */
+.tgl {
+  width:         44px;
+  height:        24px;
+  border:        1px solid var(--rule);
+  background:    var(--paper-3);
+  position:      relative;
+  border-radius: var(--r-full);
+  cursor:        pointer;
+  appearance:    none;
+  padding:       0;
+  margin:        0;
+  flex-shrink:   0;
+  min-height:    44px;
+  display:       flex;
+  align-items:   center;
+  transition:    background 0.2s;
+}
+.tgl > i {
+  position:      absolute;
+  top:           4px;
+  left:          4px;
+  width:         14px;
+  height:        14px;
+  background:    var(--ink-4);
+  border-radius: 50%;
+  transition:    transform 0.18s ease, background 0.18s ease;
+  pointer-events: none;
+}
+.tgl.on { background: var(--accent-soft); border-color: var(--accent); }
+.tgl.on > i { transform: translateX(20px); background: var(--accent); }
+
+/* ─────────────── Row ─── */
+.row {
+  display:       flex;
+  align-items:   center;
+  gap:           14px;
+  padding:       18px 24px;
+  border-bottom: 1px solid var(--rule);
+  min-height:    56px;
+}
+.row:last-child { border-bottom: 0; }
+
+/* ─────────────── Marginalia ─── */
+.marginalia {
+  font-family:    var(--sans);
+  font-weight:    300;
+  font-style:     italic;
+  color:          var(--ink-4);
+  font-size:      12px;
+  width:          22px;
+  text-align:     right;
+  flex-shrink:    0;
+  line-height:    1;
+}
+
+/* ─────────────── Bottom nav ─── */
+.bottom-nav {
+  border-top:  1px solid var(--rule);
+  background:  var(--paper);
+  display:     grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding:     13px 0 calc(13px + var(--safe-bottom));
+  flex-shrink: 0;
+}
+.bottom-nav button,
+.bottom-nav a {
+  appearance:      none;
+  border:          0;
+  background:      transparent;
+  font-family:     var(--sans);
+  font-size:       10px;
+  font-weight:     500;
+  letter-spacing:  0.06em;
+  text-transform:  uppercase;
+  color:           var(--ink-4);
+  padding:         6px 4px 4px;
+  cursor:          pointer;
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  gap:             5px;
+  min-height:      44px;
+  text-decoration: none;
+  transition:      color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.bottom-nav button .dot,
+.bottom-nav a .dot {
+  width:         18px;
+  height:        2px;
+  background:    transparent;
+  border-radius: 1px;
+  transition:    background 0.15s;
+}
+.bottom-nav button.active,
+.bottom-nav a.active {
+  color:       var(--ink);
+  font-weight: 700;
+}
+.bottom-nav button.active .dot,
+.bottom-nav a.active .dot {
+  background: var(--accent);
+}
+
+/* ─────────────── Legacy layouts (log / auth) ─── */
+.screen {
+  padding:    max(24px, calc(env(safe-area-inset-top) + 16px)) 20px
+              calc(var(--nav-h) + 28px);
+  min-height: 100dvh;
+}
+.screen-full {
+  min-height:     100dvh;
+  background:     var(--paper);
+  display:        flex;
+  flex-direction: column;
+  padding-bottom: max(32px, calc(env(safe-area-inset-bottom) + 24px));
+}
+
+/* ─────────────── Sticky header ─── */
+.sticky-header {
+  position:              sticky;
+  top:                   0;
+  z-index:               20;
+  display:               flex;
+  align-items:           center;
+  gap:                   12px;
+  padding:               max(16px, calc(env(safe-area-inset-top) + 8px)) 20px 16px;
+  background:            var(--bg-glass);
+  backdrop-filter:       blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom:         1px solid var(--rule-2);
+}
+.sticky-header-title {
+  font-size:     15px;
+  font-weight:   600;
+  color:         var(--ink);
+  flex:          1;
+  text-align:    center;
+  overflow:      hidden;
+  text-overflow: ellipsis;
+  white-space:   nowrap;
+  letter-spacing: -0.01em;
+}
+.header-icon-btn {
+  width:           40px;
+  height:          40px;
+  border-radius:   50%;
+  background:      var(--paper-2);
+  color:           var(--ink-2);
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  cursor:          pointer;
+  flex-shrink:     0;
+  border:          1px solid var(--rule);
+  text-decoration: none;
+  transition:      opacity 0.12s;
+}
+.header-icon-btn:active { opacity: 0.65; }
+
+/* ─────────────── Buttons ─── */
+.btn-primary {
+  appearance:      none;
+  border:          0;
+  background:      var(--ink);
+  color:           var(--paper);
+  font-family:     var(--sans);
+  font-weight:     600;
+  font-size:       15px;
+  letter-spacing:  -0.01em;
+  padding:         16px 20px;
+  width:           100%;
+  border-radius:   var(--r);
+  cursor:          pointer;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  gap:             10px;
+  min-height:      52px;
+  transition:      opacity 0.15s;
+}
+.btn-primary:disabled { opacity: 0.35; cursor: default; }
+.btn-primary:not(:disabled):active { opacity: 0.75; }
+
+/* Forest green CTA — the "let it go" moment */
+.btn-accent {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  width:           100%;
+  min-height:      54px;
+  padding:         16px 20px;
+  background:      var(--accent);
+  color:           var(--accent-fg);
+  border:          none;
+  border-radius:   var(--r);
+  font-size:       15px;
+  font-weight:     600;
+  letter-spacing:  -0.01em;
+  cursor:          pointer;
+  font-family:     var(--sans);
+  transition:      opacity 0.15s;
+}
+.btn-accent:disabled { opacity: 0.35; cursor: default; }
+.btn-accent:not(:disabled):active { opacity: 0.85; }
+
+.btn-ghost {
+  appearance:   none;
+  border:       0;
+  background:   transparent;
+  color:        var(--ink-3);
+  font-family:  var(--sans);
+  font-size:    14px;
+  font-weight:  400;
+  padding:      14px;
+  width:        100%;
+  cursor:       pointer;
+  min-height:   44px;
+  line-height:  1.5;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ─────────────── Inputs ─── */
+.input-field {
+  width:           100%;
+  padding:         14px 16px;
+  background:      var(--paper-2);
+  border:          1px solid var(--rule);
+  border-radius:   var(--r-sm);
+  font-size:       15px;
+  font-family:     var(--sans);
+  color:           var(--ink);
+  outline:         none;
+  transition:      border-color 0.15s, box-shadow 0.15s;
+  line-height:     1.5;
+  -webkit-appearance: none;
+}
+.input-field:focus {
+  border-color: var(--ink-3);
+  box-shadow:   0 0 0 3px var(--accent-soft);
+}
+.input-field::placeholder { color: var(--ink-4); }
+
+.label {
+  display:        block;
+  font-family:    var(--sans);
+  font-size:      10px;
+  font-weight:    600;
+  color:          var(--ink-3);
+  margin-bottom:  8px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+
+.section-label {
+  font-family:    var(--sans);
+  font-size:      10px;
+  font-weight:    600;
+  color:          var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+}
+
+/* ─────────────── FAB ─── */
+.fab {
+  position:    fixed;
+  bottom:      calc(var(--nav-h) + 16px);
+  right:       max(16px, calc((100vw - var(--max-w)) / 2 + 16px));
+  width:       52px;
+  height:      52px;
+  background:  var(--accent);
+  color:       var(--accent-fg);
+  border:      none;
+  border-radius: var(--r);
+  font-size:   22px;
+  cursor:      pointer;
+  display:     flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:  var(--shadow);
+  text-decoration: none;
+  z-index:     40;
+  transition:  transform 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.fab:active { transform: scale(0.91); }
+
+/* ─────────────── Misc ─── */
+.error-text { color: var(--warn); font-size: 14px; margin-top: 6px; line-height: 1.5; }
+.divider    { border: none; border-top: 1px solid var(--rule); margin: 20px 0; }
+
+/* ─────────────── Animations ─── */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60%  { transform: translateX(-6px); }
+  40%, 80%  { transform: translateX(6px); }
+}
+.shake { animation: shake 0.4s ease; }
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeSlideUp 0.32s ease forwards; }
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.90); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.scale-in { animation: scaleIn 0.30s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+@keyframes popIn {
+  0%   { opacity: 0; transform: scale(0.72) translateY(8px); }
+  65%  { transform: scale(1.04) translateY(-2px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.pop-in { animation: popIn 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+@keyframes fall {
+  to { transform: translateY(110vh) rotate(360deg); opacity: 0; }
 }

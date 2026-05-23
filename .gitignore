@@ -36,6 +36,18 @@ yarn-error.log*
 # vercel
 .vercel
 
+# firebase deploy cache
+.firebase/
+
+# firebase functions dependencies
+functions/node_modules/
+
+# claude dev tools
+.claude/
+
+# design preview files
+public/preview-directions.html
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
