@@ -75,19 +75,35 @@ export default function InsightsPage() {
                 HELD · ACROSS {data.totalItems} ITEM{data.totalItems !== 1 ? 'S' : ''}
               </div>
               <Figure amount={data.totalSaved} currency={symbol} size={80} italic />
-              <div style={{ marginTop: 18, fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.45 }}>
-                That&apos;s <span style={{ color: 'var(--ink)' }}>
-                  {symbol}{(data.totalSaved / Math.max(1, Math.ceil(data.totalItems / 5))).toFixed(0)} per review cycle
-                </span> kept in your pocket.
-              </div>
+              {/* 2.11 — per-item-held copy */}
+              {(() => {
+                const heldCount = data.moodBreakdown
+                  ? data.moodBreakdown.reduce((sum, m) => sum + (m.saved ?? 0), 0)
+                  : 0;
+                const divisor  = heldCount > 0
+                  ? heldCount
+                  : Math.max(1, (data.totalItems || 1) - (data.totalBought || 0));
+                const perItem  = data.totalSaved > 0
+                  ? (data.totalSaved / divisor).toFixed(0)
+                  : '0';
+                return (
+                  <div style={{ marginTop: 18, fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.45 }}>
+                    That&apos;s{' '}
+                    <span style={{ color: 'var(--ink)' }}>
+                      {symbol}{perItem} per item held back
+                    </span>{' '}
+                    — money that stayed in your pocket.
+                  </div>
+                );
+              })()}
             </div>
 
-            {/* ── Triptych: considered / held / bought ── */}
+            {/* ── Triptych: logged / held / bought ── 2.8: CONSIDERED→LOGGED */}
             <div style={{ borderTop: '1px solid var(--rule)', borderBottom: '1px solid var(--rule)', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr' }}>
               {[
-                { label: 'CONSIDERED', value: data.totalPaused, tone: 'var(--ink)'  },
-                { label: 'HELD',       value: data.totalSaved,  tone: 'var(--good)' },
-                { label: 'BOUGHT',     value: data.totalBought, tone: 'var(--warn)' },
+                { label: 'LOGGED',  value: data.totalPaused, tone: 'var(--ink)'  },   // 2.8
+                { label: 'HELD',    value: data.totalSaved,  tone: 'var(--good)' },
+                { label: 'BOUGHT',  value: data.totalBought, tone: 'var(--warn)' },
               ].map((c, i) => (
                 <div key={i} style={{
                   padding: '20px 16px', textAlign: 'center',
@@ -122,10 +138,12 @@ export default function InsightsPage() {
                       </span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      {/* 2.2 — AT RISK badge: add borderRadius */}
                       {m.saveRate < 40 && (
                         <span style={{
                           fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.15em',
                           color: 'var(--warn)', border: '1px solid var(--warn)', padding: '2px 6px',
+                          borderRadius: 'var(--r-xs)',
                         }}>
                           AT RISK
                         </span>
@@ -142,18 +160,15 @@ export default function InsightsPage() {
               ))}
             </div>
 
-            {/* ── Pro paywall ── */}
-            <div style={{ margin: '28px 24px 36px', padding: '22px', border: '1px solid var(--rule)' }}>
-              <div className="eyebrow accent" style={{ marginBottom: 10 }}>PRO INSIGHTS</div>
+            {/* ── 1.4: Coming soon block (replaces Pro paywall / UNLOCK button) ── */}
+            <div style={{ margin: '28px 24px 36px', padding: '22px', border: '1px solid var(--rule)', borderRadius: 'var(--r)' }}>
+              <div className="eyebrow accent" style={{ marginBottom: 10 }}>COMING SOON</div>
               <div style={{ fontFamily: 'var(--serif)', fontStyle: 'italic', fontSize: 22, lineHeight: 1.2, color: 'var(--ink)' }}>
                 Hour-of-day, merchant<br />and category breakdowns.
               </div>
-              <div style={{ marginTop: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', minHeight: 44 }}>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.14em', color: 'var(--ink-2)' }}>
-                  €3 / MONTH
-                </span>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.14em', color: 'var(--accent-ink)' }}>
-                  UNLOCK ↗
+              <div style={{ marginTop: 14 }}>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.14em', color: 'var(--ink-3)' }}>
+                  PRO INSIGHTS · ARRIVING SOON
                 </span>
               </div>
             </div>

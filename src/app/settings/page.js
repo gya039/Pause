@@ -14,11 +14,12 @@ import LoadingScreen from '@/components/LoadingScreen';
 export default function SettingsPage() {
   const router  = useRouter();
   const { user, profile, loading: authLoading, refreshProfile } = useAuth();
-  const { isDark, toggle: toggleTheme } = useTheme();
+  const { isDark, toggle: toggleTheme, followsSystem, setFollowSystem } = useTheme();
 
   const [saving,        setSaving]        = useState(false);
   const [deleting,      setDeleting]      = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleteError,   setDeleteError]   = useState(null);   // 1.5
 
   useEffect(() => {
     if (!authLoading && !user) router.replace('/auth');
@@ -56,6 +57,7 @@ export default function SettingsPage() {
   }
 
   async function handleDeleteAccount() {
+    setDeleteError(null);   // 1.5 — clear on each attempt
     if (!deleteConfirm) { setDeleteConfirm(true); return; }
     setDeleting(true);
     try {
@@ -66,7 +68,7 @@ export default function SettingsPage() {
       setDeleting(false);
       setDeleteConfirm(false);
       if (err.code === 'auth/requires-recent-login') {
-        alert('Please sign out and sign back in, then try again.');
+        setDeleteError('Please sign out and sign back in, then try again.');   // 1.5
       }
     }
   }
@@ -77,16 +79,31 @@ export default function SettingsPage() {
 
         {/* ── Header ── */}
         <div style={{ padding: '12px 24px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <div className="display" style={{ fontSize: 42, fontStyle: 'italic' }}>Settings</div>
+          {/* 2.6 — smaller, non-italic */}
+          <div className="display" style={{ fontSize: 32, fontStyle: 'normal', fontWeight: 600 }}>Settings</div>
           {saving && <div className="eyebrow accent">SAVING…</div>}
         </div>
 
         <div className="rule" />
 
-        {/* ── Appearance ── */}
+        {/* ── Appearance ── 1.3: two rows */}
         <SectionLabel>APPEARANCE</SectionLabel>
-        <Row label="Dark mode" note="Follow system off" last>
-          <Toggle on={isDark} onToggle={toggleTheme} label="Dark mode" />
+        <Row
+          label="Dark mode"
+          note={followsSystem ? 'Synced to device' : 'Manual override'}
+        >
+          <Toggle
+            on={isDark}
+            onToggle={followsSystem ? undefined : toggleTheme}
+            label="Dark mode"
+          />
+        </Row>
+        <Row label="Follow system" note="Match device appearance" last>
+          <Toggle
+            on={followsSystem}
+            onToggle={() => setFollowSystem(!followsSystem)}
+            label="Follow system"
+          />
         </Row>
         <div className="rule" />
 
@@ -99,8 +116,15 @@ export default function SettingsPage() {
             label="Email notifications"
           />
         </Row>
+        {/* 2.7 — Weekly digest: non-interactive SOON pill */}
         <Row label="Weekly digest" note="Coming soon" last>
-          <Toggle on={false} label="Weekly digest" />
+          <span style={{
+            fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.14em',
+            color: 'var(--ink-3)', border: '1px solid var(--rule)',
+            padding: '3px 8px', borderRadius: 'var(--r-xs)',
+          }}>
+            SOON
+          </span>
         </Row>
         <div className="rule" />
 
@@ -161,6 +185,18 @@ export default function SettingsPage() {
         >
           {!deleting && <Arrow dir="right" size={11} color="var(--warn)" />}
         </Row>
+
+        {/* 1.5 — Inline delete error */}
+        {deleteError && (
+          <div style={{ padding: '0 24px 16px' }}>
+            <div style={{
+              fontSize: 13, color: 'var(--warn)', lineHeight: 1.5,
+              fontFamily: 'var(--mono)', letterSpacing: '0.02em',
+            }}>
+              {deleteError}
+            </div>
+          </div>
+        )}
 
         {/* ── Footer quote ── */}
         <div style={{ padding: '40px 24px 36px', textAlign: 'center' }}>

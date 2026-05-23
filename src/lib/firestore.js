@@ -3,7 +3,7 @@
 import { db } from './firebase';
 import {
   collection, addDoc, updateDoc, setDoc, doc, getDoc, getDocs,
-  query, where, orderBy, onSnapshot,
+  query, where, orderBy, onSnapshot, limit,
   serverTimestamp, Timestamp, deleteDoc,
 } from 'firebase/firestore';
 
@@ -85,14 +85,17 @@ export async function updateUserProfile(userId, updates) {
   await setDoc(doc(db, 'users', userId), updates, { merge: true });
 }
 
-export async function createUserProfile(userId, email) {
-  await setDoc(doc(db, 'users', userId), {
+// 3.2 — accepts detected currency on first signup; merge:true won't overwrite existing prefs
+export async function createUserProfile(userId, email, detectedCurrency) {
+  const data = {
     email,
     createdAt:          serverTimestamp(),
     isPro:              false,
-    currency:           'GBP',
     emailNotifications: true,
-  }, { merge: true });
+  };
+  // Only set currency if we have a detected value (new signup) — merge keeps existing
+  if (detectedCurrency) data.currency = detectedCurrency;
+  await setDoc(doc(db, 'users', userId), data, { merge: true });
 }
 
 export async function exportUserData(userId) {
@@ -113,6 +116,38 @@ export async function exportUserData(userId) {
       reviewedAt: data.reviewedAt?.toDate?.()?.toISOString() ?? null,
     };
   });
+}
+
+// 3.3 — consecutive-day review streak
+export async function getReviewStreak(userId) {
+  const q = query(
+    collection(db, 'items'),
+    where('userId', '==', userId),
+    where('status', 'in', ['saved', 'bought']),
+    orderBy('reviewedAt', 'desc'),
+    limit(60),
+  );
+  const snap = await getDocs(q);
+  if (snap.empty) return 0;
+
+  const days = new Set(
+    snap.docs
+      .filter(d => d.data().reviewedAt)
+      .map(d => {
+        const date = d.data().reviewedAt?.toDate?.() ?? new Date(d.data().reviewedAt);
+        return date.toDateString();
+      }),
+  );
+
+  let streak = 0;
+  const today = new Date();
+  for (let i = 0; i < 60; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    if (days.has(d.toDateString())) streak++;
+    else if (i > 0) break;
+  }
+  return streak;
 }
 
 export async function deleteUserData(userId) {

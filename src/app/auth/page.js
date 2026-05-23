@@ -31,7 +31,7 @@ export default function AuthPage() {
     try {
       if (mode === 'register') {
         const cred = await createUserWithEmailAndPassword(auth, email, password);
-        createUserProfile(cred.user.uid, email).catch(console.error);
+        createUserProfile(cred.user.uid, email, detectCurrency()).catch(console.error);
       } else {
         const cred = await signInWithEmailAndPassword(auth, email, password);
         createUserProfile(cred.user.uid, email).catch(console.error);
@@ -170,6 +170,27 @@ export default function AuthPage() {
       </div>
     </div>
   );
+}
+
+// 3.2 — Detect likely currency from browser locale
+function detectCurrency() {
+  try {
+    const locale = navigator.language || 'en-GB';
+    const map = {
+      'en-ie': 'EUR', 'en-gb': 'GBP', 'en-us': 'USD',
+      'de':    'EUR', 'fr':    'EUR', 'it':    'EUR',
+      'es':    'EUR', 'pt':    'EUR', 'nl':    'EUR',
+      'pl':    'PLN', 'sv':    'SEK', 'nb':    'NOK',
+      'da':    'DKK', 'ja':    'JPY', 'zh':    'CNY',
+      'ko':    'KRW', 'in':    'INR', 'au':    'AUD',
+      'ca':    'CAD',
+    };
+    const key = locale.toLowerCase();
+    for (const [prefix, val] of Object.entries(map)) {
+      if (key.startsWith(prefix)) return val;
+    }
+  } catch {}
+  return 'EUR';
 }
 
 function friendlyError(code) {

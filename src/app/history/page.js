@@ -196,9 +196,14 @@ export default function HistoryPage() {
               </div>
             ))}
 
-            {/* End marker */}
-            <div style={{ padding: '24px 24px 36px', textAlign: 'center' }}>
-              <div className="eyebrow">END</div>
+            {/* 2.10 — footer quote instead of "END" */}
+            <div style={{ padding: '32px 24px 48px', textAlign: 'center' }}>
+              <div style={{
+                fontFamily: 'var(--serif)', fontStyle: 'italic',
+                fontSize: 16, color: 'var(--ink-3)', lineHeight: 1.6,
+              }}>
+                &ldquo;The space between desire and purchase<br />is where freedom lives.&rdquo;
+              </div>
             </div>
           </>
         )}

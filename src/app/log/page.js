@@ -27,6 +27,15 @@ export default function LogPage() {
   const [submitted,       setSubmitted]       = useState(false);
   const [moodShake,       setMoodShake]       = useState(false);
 
+  // 3.1 — PWA share target: pre-fill from browser share sheet params
+  useEffect(() => {
+    const params      = new URLSearchParams(window.location.search);
+    const sharedTitle = params.get('shared_title') || params.get('title') || '';
+    const sharedUrl   = params.get('shared_url')   || params.get('url')   || '';
+    if (sharedTitle) setName(sharedTitle);
+    if (sharedUrl)   setUrl(sharedUrl);
+  }, []);
+
   useEffect(() => {
     if (!authLoading && !user) router.replace('/auth');
   }, [user, authLoading, router]);

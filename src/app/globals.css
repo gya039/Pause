@@ -10,7 +10,7 @@
 :root {
   --sans:  var(--font-jakarta, 'Plus Jakarta Sans', system-ui, sans-serif);
   --font:  var(--sans);
-  --serif: var(--sans);
+  --serif: var(--font-lora, Georgia, serif);   /* Lora italic — emotional moments */
   --mono:  var(--sans);
 
   /* Surfaces — warm off-white, not clinical */
@@ -370,10 +370,10 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 }
 .bottom-nav button .dot,
 .bottom-nav a .dot {
-  width:         18px;
-  height:        2px;
+  width:         24px;
+  height:        3px;
   background:    transparent;
-  border-radius: 1px;
+  border-radius: 2px;
   transition:    background 0.15s;
 }
 .bottom-nav button.active,

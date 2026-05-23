@@ -8,15 +8,25 @@ import { useItems } from '@/hooks/useItems';
 import { useSavedTotal } from '@/hooks/useSavedTotal';
 import { useInsights } from '@/hooks/useInsights';
 import { useBadge } from '@/hooks/useBadge';
+import { getReviewStreak } from '@/lib/firestore';
 import { getCurrencySymbol } from '@/constants/currency';
 import { BottomNav, Figure, Mood, Thumb } from '@/components/Almanac';
 import LoadingScreen from '@/components/LoadingScreen';
 import OnboardingModal from '@/components/OnboardingModal';
 
 const FOUR_HOURS = 4 * 60 * 60 * 1000;
+const TWO_HOURS  = 2 * 60 * 60 * 1000;  // 2.12
 
 function todayLabel() {
   return new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase();
+}
+
+// 2.9 — contextual greeting based on time of day
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'GOOD MORNING';
+  if (h < 17) return 'GOOD AFTERNOON';
+  return 'GOOD EVENING';
 }
 
 function ageLabel(expiresAt) {
@@ -30,6 +40,13 @@ function ageLabel(expiresAt) {
   return `${Math.floor(h / 24)}d`;
 }
 
+// 2.12 — returns true when item expires in under 2 hours
+function isExpiringSoon(expiresAt) {
+  const ts = expiresAt?.toDate ? expiresAt.toDate() : new Date(expiresAt);
+  const remaining = ts.getTime() - Date.now();
+  return remaining < TWO_HOURS && remaining > 0;
+}
+
 export default function HomePage() {
   const router = useRouter();
   const { user, profile, loading: authLoading } = useAuth();
@@ -40,10 +57,17 @@ export default function HomePage() {
   const symbol                                  = getCurrencySymbol(profile?.currency);
 
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [streak, setStreak]                 = useState(0);   // 3.3
 
   useEffect(() => {
     try { if (!localStorage.getItem('pause_onboarded')) setShowOnboarding(true); } catch {}
   }, []);
+
+  // 3.3 — fetch review streak once on load
+  useEffect(() => {
+    if (!user) return;
+    getReviewStreak(user.uid).then(setStreak).catch(() => {});
+  }, [user]);
 
   useEffect(() => {
     if (itemsLoading || !items) return;
@@ -83,12 +107,13 @@ export default function HomePage() {
           padding: '20px 24px 16px',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
-          <div className="eyebrow" style={{ color: 'var(--ink-2)' }}>PAUSE</div>
+          {/* 2.9 — time-of-day greeting instead of static "PAUSE" */}
+          <div className="eyebrow" style={{ color: 'var(--ink-2)' }}>{greeting()}</div>
           <div className="eyebrow">{todayLabel()}</div>
         </div>
 
-        {/* ── Held total — the number is the hero ── */}
-        <div style={{ padding: '4px 24px 8px' }}>
+        {/* ── Held total — hero number ── 2.4: more breathing room */}
+        <div style={{ padding: '16px 24px 20px' }}>
           <div className="eyebrow" style={{ marginBottom: 10, color: 'var(--ink-4)' }}>
             HELD THIS YEAR
           </div>
@@ -114,6 +139,15 @@ export default function HomePage() {
             <div style={{ display: 'flex', gap: 16 }}>
               <span className="eyebrow" style={{ color: 'var(--accent)' }}>{savedCount} held</span>
               <span className="eyebrow" style={{ color: 'var(--warn)' }}>{boughtCount} bought</span>
+            </div>
+          </div>
+        )}
+
+        {/* 3.3 — Streak indicator (only when >= 3 consecutive review days) */}
+        {streak >= 3 && (
+          <div style={{ padding: '0 24px 20px' }}>
+            <div className="eyebrow" style={{ color: 'var(--accent-ink)' }}>
+              {streak}-DAY STREAK
             </div>
           </div>
         )}
@@ -148,11 +182,21 @@ export default function HomePage() {
             <div className="eyebrow">LOADING…</div>
           </div>
         ) : items.length === 0 ? (
+          /* 2.13 — improved empty state */
           <div style={{ padding: '40px 24px 32px' }}>
-            <div style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.6 }}>
-              Add something you're thinking about buying.<br />
-              Check back in 24 hours.
+            <div style={{ fontSize: 15, color: 'var(--ink-2)', lineHeight: 1.6, marginBottom: 16 }}>
+              Your queue is clear.
             </div>
+            <div style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 20 }}>
+              See something you want? Add it and come back in 24 hours.
+            </div>
+            <Link href="/history" style={{
+              fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '0.14em',
+              textTransform: 'uppercase', color: 'var(--accent-ink)',
+              textDecoration: 'underline', textUnderlineOffset: 3,
+            }}>
+              SEE YOUR HISTORY →
+            </Link>
           </div>
         ) : (
           <div>
@@ -187,10 +231,11 @@ export default function HomePage() {
                     {item.name}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {/* 2.3 — serif italic for prices, consistent with History */}
                     {item.price != null && (
                       <span style={{
-                        fontSize: 13, fontWeight: 700, color: 'var(--ink-2)',
-                        letterSpacing: '-0.02em',
+                        fontFamily: 'var(--serif)', fontStyle: 'italic',
+                        fontSize: 13, color: 'var(--ink-2)',
                       }}>
                         {symbol}{item.price}
                       </span>
@@ -198,11 +243,13 @@ export default function HomePage() {
                     {item.mood && <Mood word={item.mood} />}
                   </div>
                 </div>
+                {/* 2.12 — amber + ⚡ when < 2 hours remain */}
                 <div style={{
-                  fontSize: 11, fontWeight: 500, color: 'var(--ink-4)',
+                  fontSize: 11, fontWeight: 500,
+                  color: isExpiringSoon(item.expiresAt) ? 'var(--amber)' : 'var(--ink-4)',
                   letterSpacing: '0.02em', flexShrink: 0,
                 }}>
-                  {ageLabel(item.expiresAt)}
+                  {isExpiringSoon(item.expiresAt) ? '⚡ ' : ''}{ageLabel(item.expiresAt)}
                 </div>
               </button>
             ))}
