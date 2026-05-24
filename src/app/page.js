@@ -21,6 +21,12 @@ function todayLabel() {
   return new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase();
 }
 
+function timeLabel(d = new Date()) {
+  const h = String(d.getHours()).padStart(2, '0');
+  const m = String(d.getMinutes()).padStart(2, '0');
+  return `${h}.${m}`;
+}
+
 // 2.9 — contextual greeting based on time of day
 function greeting() {
   const h = new Date().getHours();
@@ -58,9 +64,16 @@ export default function HomePage() {
 
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [streak, setStreak]                 = useState(0);   // 3.3
+  const [time, setTime]                     = useState(() => timeLabel());
 
   useEffect(() => {
     try { if (!localStorage.getItem('pause_onboarded')) setShowOnboarding(true); } catch {}
+  }, []);
+
+  // Tick every 30s — keeps the clock accurate without burning battery
+  useEffect(() => {
+    const id = setInterval(() => setTime(timeLabel()), 30_000);
+    return () => clearInterval(id);
   }, []);
 
   // 3.3 — fetch review streak once on load
@@ -123,7 +136,10 @@ export default function HomePage() {
             </div>
             <div className="eyebrow" style={{ color: 'var(--ink-2)' }}>{greeting()}</div>
           </div>
-          <div className="eyebrow">{todayLabel()}</div>
+          <div style={{ textAlign: 'right' }}>
+            <div className="eyebrow">{todayLabel()}</div>
+            <div className="eyebrow" style={{ color: 'var(--ink-4)', marginTop: 2 }}>{time}</div>
+          </div>
         </div>
 
         {/* ── Held total — hero number ── 2.4: more breathing room */}
