@@ -47,9 +47,12 @@ export default function ReviewPage() {
 
   // ── Swipe state ──
   const bodyRef    = useRef(null);
+  const cardRef    = useRef(null);   // direct DOM transform — no re-renders during drag
+  const heldOverRef  = useRef(null); // overlay refs — updated via style directly
+  const buyOverRef   = useRef(null);
+  const hintRef      = useRef(null);
   const touchData  = useRef({ x: 0, y: 0, dir: null });
   const dragXRef   = useRef(0);
-  const [dragX, setDragX] = useState(0);
   const isDragging = useRef(false);
 
   // Keep mutable refs current so touch handlers don't go stale
@@ -59,6 +62,30 @@ export default function ReviewPage() {
   useEffect(() => { itemRef.current = item; },       [item]);
   useEffect(() => { savedTotalRef.current = savedTotal; }, [savedTotal]);
   useEffect(() => { busyRef.current = busy; },       [busy]);
+
+  // Direct DOM update — called on every touchmove, no React state, no re-renders
+  function applyDragUI(dx) {
+    if (cardRef.current) {
+      cardRef.current.style.transform  = `translateX(${dx}px) rotate(${dx * 0.012}deg)`;
+      cardRef.current.style.transition = 'none';
+    }
+    const heldOp   = Math.min(0.7, Math.max(0, ( dx - 15) / 80));
+    const buyingOp = Math.min(0.7, Math.max(0, (-dx - 15) / 80));
+    if (heldOverRef.current)  heldOverRef.current.style.opacity  = heldOp;
+    if (buyOverRef.current)   buyOverRef.current.style.opacity   = buyingOp;
+    if (hintRef.current)      hintRef.current.style.opacity      = dx !== 0 ? '0' : '0.4';
+  }
+
+  function snapBack() {
+    if (cardRef.current) {
+      cardRef.current.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      cardRef.current.style.transform  = 'translateX(0px) rotate(0deg)';
+    }
+    if (heldOverRef.current)  heldOverRef.current.style.opacity  = '0';
+    if (buyOverRef.current)   buyOverRef.current.style.opacity   = '0';
+    if (hintRef.current)      hintRef.current.style.opacity      = '0.4';
+    dragXRef.current = 0;
+  }
 
   // ── Data load ──
   useEffect(() => {
@@ -84,7 +111,10 @@ export default function ReviewPage() {
     load().catch(() => setPageState('error'));
   }, [user, authLoading]); // eslint-disable-line
 
-  // ── Swipe touch handlers (non-passive so we can preventDefault) ──
+  // ── Swipe touch handlers ──
+  // touch-action: pan-y on the container (set inline below) tells the browser
+  // "only intercept vertical scrolls natively — leave horizontal to JS".
+  // Non-passive touchmove lets us call preventDefault() to stop any scroll bleed.
   useEffect(() => {
     if (pageState !== 'ready') return;
     const el = bodyRef.current;
@@ -100,16 +130,17 @@ export default function ReviewPage() {
       const dx = e.touches[0].clientX - touchData.current.x;
       const dy = e.touches[0].clientY - touchData.current.y;
 
-      if (!touchData.current.dir && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
-        touchData.current.dir = Math.abs(dx) > Math.abs(dy) * 1.2 ? 'h' : 'v';
+      // Commit direction once movement clears 8 px
+      if (!touchData.current.dir && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+        touchData.current.dir = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
       }
 
       if (touchData.current.dir === 'h') {
-        e.preventDefault();
+        e.preventDefault(); // stop browser from scrolling
         isDragging.current = true;
         const clamped = Math.max(-170, Math.min(170, dx));
         dragXRef.current = clamped;
-        setDragX(clamped);
+        applyDragUI(clamped); // direct DOM update — zero re-renders
       }
     }
 
@@ -121,8 +152,7 @@ export default function ReviewPage() {
         const id = new URLSearchParams(window.location.search).get('id');
         doSubmit(id, itemRef.current, dx > 0 ? 'saved' : 'bought', savedTotalRef.current);
       } else {
-        dragXRef.current = 0;
-        setDragX(0);
+        snapBack();
       }
       touchData.current.dir = null;
     }
@@ -174,10 +204,6 @@ export default function ReviewPage() {
 
   const moodCopy = MOOD_COPY[item?.mood] || MOOD_COPY.default;
   const isSaved  = decision === 'saved';
-
-  // Swipe overlay opacity
-  const heldOpacity   = Math.min(0.7, Math.max(0, (dragX  - 15) / 80));
-  const buyingOpacity = Math.min(0.7, Math.max(0, (-dragX - 15) / 80));
 
   if (authLoading || (pageState === 'loading' && user)) return <LoadingScreen />;
 
@@ -275,15 +301,11 @@ export default function ReviewPage() {
   return (
     <div className="p-screen" style={{ overflow: 'hidden' }}>
 
-      {/* Body — swipe listeners attach here */}
-      <div ref={bodyRef} className="p-body">
+      {/* touch-action: pan-y — browser handles vertical scroll, JS handles horizontal */}
+      <div ref={bodyRef} className="p-body" style={{ touchAction: 'pan-y' }}>
 
-        {/* Swipeable card */}
-        <div style={{
-          transform:  `translateX(${dragX}px) rotate(${dragX * 0.012}deg)`,
-          transition: isDragging.current ? 'none' : 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
-          willChange: 'transform',
-        }}>
+        {/* Swipeable card — transform controlled directly via cardRef, not React state */}
+        <div ref={cardRef} style={{ willChange: 'transform' }}>
 
           {/* Top bar */}
           <div style={{
@@ -331,39 +353,35 @@ export default function ReviewPage() {
               </div>
             )}
 
-            {/* HELD overlay (swipe right) */}
-            {dragX > 15 && (
-              <div style={{
-                position: 'absolute', inset: 0, pointerEvents: 'none',
-                background: `rgba(28,74,48,${heldOpacity})`,
-                display: 'flex', alignItems: 'center', padding: '0 28px',
+            {/* HELD overlay — always rendered, opacity driven by ref */}
+            <div ref={heldOverRef} style={{
+              position: 'absolute', inset: 0, pointerEvents: 'none',
+              background: 'rgba(28,74,48,0)',
+              display: 'flex', alignItems: 'center', padding: '0 28px',
+              opacity: 0,
+            }}>
+              <span style={{
+                color: '#fff', fontSize: 26, fontWeight: 800,
+                letterSpacing: '-0.03em', textShadow: '0 1px 8px rgba(0,0,0,0.3)',
               }}>
-                <span style={{
-                  color: '#fff', fontSize: 26, fontWeight: 800,
-                  letterSpacing: '-0.03em', textShadow: '0 1px 8px rgba(0,0,0,0.3)',
-                  opacity: Math.min(1, heldOpacity * 2),
-                }}>
-                  HELD ✓
-                </span>
-              </div>
-            )}
+                HELD ✓
+              </span>
+            </div>
 
-            {/* BUYING overlay (swipe left) */}
-            {dragX < -15 && (
-              <div style={{
-                position: 'absolute', inset: 0, pointerEvents: 'none',
-                background: `rgba(184,50,50,${buyingOpacity})`,
-                display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 28px',
+            {/* BUYING overlay — always rendered */}
+            <div ref={buyOverRef} style={{
+              position: 'absolute', inset: 0, pointerEvents: 'none',
+              background: 'rgba(184,50,50,0)',
+              display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 28px',
+              opacity: 0,
+            }}>
+              <span style={{
+                color: '#fff', fontSize: 26, fontWeight: 800,
+                letterSpacing: '-0.03em', textShadow: '0 1px 8px rgba(0,0,0,0.3)',
               }}>
-                <span style={{
-                  color: '#fff', fontSize: 26, fontWeight: 800,
-                  letterSpacing: '-0.03em', textShadow: '0 1px 8px rgba(0,0,0,0.3)',
-                  opacity: Math.min(1, buyingOpacity * 2),
-                }}>
-                  BUYING ↗
-                </span>
-              </div>
-            )}
+                BUYING ↗
+              </span>
+            </div>
           </div>
 
           {/* Item info */}
@@ -426,11 +444,10 @@ export default function ReviewPage() {
             </div>
           )}
 
-          {/* Swipe hint */}
-          <div style={{
+          {/* Swipe hint — opacity driven by ref */}
+          <div ref={hintRef} style={{
             textAlign: 'center', padding: '20px 24px 4px',
-            opacity: dragX !== 0 ? 0 : 0.4,
-            transition: 'opacity 0.2s',
+            opacity: 0.4,
             pointerEvents: 'none',
           }}>
             <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', color: 'var(--ink-3)' }}>

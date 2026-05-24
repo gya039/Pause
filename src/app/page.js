@@ -113,8 +113,14 @@ export default function HomePage() {
               width: 28, height: 28, borderRadius: 8,
               background: 'var(--accent)', display: 'flex',
               alignItems: 'center', justifyContent: 'center',
-              fontSize: 13, flexShrink: 0, userSelect: 'none',
-            }}>⏸</div>
+              flexShrink: 0, userSelect: 'none',
+            }}>
+              {/* SVG pause mark — reliable across every OS / font stack */}
+              <svg width="12" height="13" viewBox="0 0 12 13" fill="none">
+                <rect x="1"   y="1" width="3.5" height="11" rx="1" fill="white" />
+                <rect x="7.5" y="1" width="3.5" height="11" rx="1" fill="white" />
+              </svg>
+            </div>
             <div className="eyebrow" style={{ color: 'var(--ink-2)' }}>{greeting()}</div>
           </div>
           <div className="eyebrow">{todayLabel()}</div>
@@ -265,7 +271,7 @@ export default function HomePage() {
         )}
 
         {/* ── Add button ── */}
-        <div style={{ padding: '20px 24px 40px' }}>
+        <div style={{ padding: '16px 24px 20px' }}>
           <Link href="/log" style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             gap: 8, width: '100%', minHeight: 48,

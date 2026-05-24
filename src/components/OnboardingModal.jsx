@@ -79,12 +79,14 @@ export default function OnboardingModal({ onDone }) {
             display:         'flex',
             alignItems:      'center',
             justifyContent:  'center',
-            fontSize:        20,
             marginBottom:    36,
             flexShrink:      0,
             userSelect:      'none',
           }}>
-            ⏸
+            <svg width="16" height="18" viewBox="0 0 16 18" fill="none">
+              <rect x="1"   y="1" width="5" height="16" rx="1.5" fill="white" />
+              <rect x="10"  y="1" width="5" height="16" rx="1.5" fill="white" />
+            </svg>
           </div>
         )}
 
