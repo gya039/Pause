@@ -83,9 +83,9 @@ export default function OnboardingModal({ onDone }) {
             flexShrink:      0,
             userSelect:      'none',
           }}>
-            <svg width="16" height="18" viewBox="0 0 16 18" fill="none">
-              <rect x="1"   y="1" width="5" height="16" rx="1.5" fill="white" />
-              <rect x="10"  y="1" width="5" height="16" rx="1.5" fill="white" />
+            <svg width="14" height="17" viewBox="0 0 14 17" fill="none" style={{ display: 'block' }}>
+              <rect x="0"  y="0" width="5" height="17" rx="1.5" fill="white" />
+              <rect x="9"  y="0" width="5" height="17" rx="1.5" fill="white" />
             </svg>
           </div>
         )}

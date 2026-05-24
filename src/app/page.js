@@ -115,10 +115,10 @@ export default function HomePage() {
               alignItems: 'center', justifyContent: 'center',
               flexShrink: 0, userSelect: 'none',
             }}>
-              {/* SVG pause mark — reliable across every OS / font stack */}
-              <svg width="12" height="13" viewBox="0 0 12 13" fill="none">
-                <rect x="1"   y="1" width="3.5" height="11" rx="1" fill="white" />
-                <rect x="7.5" y="1" width="3.5" height="11" rx="1" fill="white" />
+              {/* SVG pause mark — display:block removes inline baseline gap */}
+              <svg width="10" height="12" viewBox="0 0 10 12" fill="none" style={{ display: 'block' }}>
+                <rect x="0"   y="0" width="3.5" height="12" rx="1" fill="white" />
+                <rect x="6.5" y="0" width="3.5" height="12" rx="1" fill="white" />
               </svg>
             </div>
             <div className="eyebrow" style={{ color: 'var(--ink-2)' }}>{greeting()}</div>
