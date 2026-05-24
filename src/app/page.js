@@ -107,8 +107,16 @@ export default function HomePage() {
           padding: '20px 24px 16px',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
-          {/* 2.9 — time-of-day greeting instead of static "PAUSE" */}
-          <div className="eyebrow" style={{ color: 'var(--ink-2)' }}>{greeting()}</div>
+          {/* Brand mark + greeting */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: 8,
+              background: 'var(--accent)', display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+              fontSize: 13, flexShrink: 0, userSelect: 'none',
+            }}>⏸</div>
+            <div className="eyebrow" style={{ color: 'var(--ink-2)' }}>{greeting()}</div>
+          </div>
           <div className="eyebrow">{todayLabel()}</div>
         </div>
 

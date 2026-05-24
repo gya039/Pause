@@ -308,22 +308,25 @@ export default function ReviewPage() {
           </div>
         </div>
 
-        {/* Mood — the centrepiece */}
+        {/* Mood — the centrepiece, tinted by mood */}
         {item?.mood && (
-          <div style={{ padding: '24px 24px 0' }}>
-            <div className="eyebrow" style={{ marginBottom: 10, color: 'var(--ink-4)' }}>
+          <div style={{
+            margin: '0', padding: '24px 24px 22px',
+            background: `var(--mood-${item.mood}-bg, var(--paper-3))`,
+          }}>
+            <div className="eyebrow" style={{ marginBottom: 12, opacity: 0.6 }}>
               When you added it
             </div>
             <div style={{
-              fontSize: 44, fontWeight: 800, letterSpacing: '-0.04em',
-              lineHeight: 1, color: moodCopy.color, marginBottom: 14,
+              fontSize: 52, fontWeight: 800, letterSpacing: '-0.04em',
+              lineHeight: 1, color: moodCopy.color, marginBottom: 16,
               fontStyle: 'italic',
             }}>
               {item.mood}.
             </div>
-            <div style={{ fontSize: 15, lineHeight: 1.55, color: 'var(--ink-3)', maxWidth: '32ch' }}>
+            <div style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--ink-3)', maxWidth: '30ch' }}>
               {moodCopy.lead}{' '}
-              <span style={{ color: 'var(--ink-2)', fontWeight: 500 }}>{moodCopy.tail}</span>
+              <span style={{ color: 'var(--ink-2)', fontWeight: 600 }}>{moodCopy.tail}</span>
             </div>
           </div>
         )}
@@ -331,7 +334,7 @@ export default function ReviewPage() {
         {/* Held total */}
         {savedTotal > 0 && (
           <div style={{
-            margin: '24px 24px 0', padding: '14px 0',
+            margin: '0 24px', padding: '16px 0',
             borderTop: '1px solid var(--rule)',
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           }}>
@@ -343,7 +346,7 @@ export default function ReviewPage() {
         )}
 
         {/* Actions */}
-        <div style={{ padding: '24px 24px 40px' }}>
+        <div style={{ padding: '20px 24px 40px' }}>
           <button
             className="btn-accent"
             onClick={() => handleDecision('saved')}
