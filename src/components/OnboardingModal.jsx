@@ -4,117 +4,141 @@ import { useState } from 'react';
 
 const SLIDES = [
   {
-    emoji:    '🛍️',
-    title:    'Feel the urge to buy something?',
-    body:     'We all do. Pause is a 24-hour buffer between impulse and purchase — so your future self gets a vote.',
+    num: '01',
+    headline: 'The space\nbetween want\nand buy.',
+    body:     'Pause is a 24-hour buffer between impulse and purchase — so your future self gets a vote.',
   },
   {
-    emoji:    '⏸',
-    title:    'Log it with your mood.',
-    body:     'Record what you want and how you\'re feeling in the moment. Tired? Bored? Anxious? It matters more than you think.',
+    num: '02',
+    headline: 'Name it.\nFeel it.\nLog it.',
+    body:     'Record what you want and how you\'re feeling in the moment. Your mood reveals more than the price tag ever will.',
   },
   {
-    emoji:    '💚',
-    title:    'Then decide if you still want it.',
-    body:     'Most of the time, you won\'t. Your wallet keeps the difference — and Pause keeps the score.',
+    num: '03',
+    headline: 'Most things\ndon\'t survive\nthe wait.',
+    body:     'That\'s the point. The money that stayed is money you kept. Pause tracks every hold.',
   },
 ];
 
 export default function OnboardingModal({ onDone }) {
-  const [slide, setSlide] = useState(0);
+  const [slide,   setSlide]   = useState(0);
+  const [exiting, setExiting] = useState(false);
+
   const isLast = slide === SLIDES.length - 1;
 
-  function next() {
+  function advance() {
     if (isLast) { onDone(); return; }
-    setSlide(s => s + 1);
+    setExiting(true);
+    setTimeout(() => {
+      setSlide(s => s + 1);
+      setExiting(false);
+    }, 180);
   }
 
   const s = SLIDES[slide];
 
   return (
-    <div style={{
-      position:       'fixed',
-      inset:          0,
-      background:     'rgba(26,23,20,0.6)',
-      backdropFilter: 'blur(6px)',
-      WebkitBackdropFilter: 'blur(6px)',
-      zIndex:         200,
-      display:        'flex',
-      alignItems:     'flex-end',
-      padding:        '0 0 env(safe-area-inset-bottom)',
-    }}>
+    <div
+      onClick={advance}
+      style={{
+        position:      'fixed',
+        inset:         0,
+        zIndex:        200,
+        background:    'var(--paper)',
+        display:       'flex',
+        flexDirection: 'column',
+        padding:       'max(36px, calc(env(safe-area-inset-top) + 28px)) 32px max(32px, calc(env(safe-area-inset-bottom) + 24px))',
+        cursor:        'pointer',
+        userSelect:    'none',
+        WebkitUserSelect: 'none',
+      }}
+    >
+      {/* Slide counter */}
+      <div className="eyebrow" style={{ color: 'var(--ink-4)' }}>
+        {s.num} / 0{SLIDES.length}
+      </div>
+
+      {/* Main content — fades + slides on transition */}
       <div style={{
-        width:         '100%',
-        maxWidth:      'var(--max-w)',
-        margin:        '0 auto',
-        background:    'var(--surface)',
-        borderRadius:  '24px 24px 0 0',
-        padding:       '32px 28px 36px',
-        animation:     'fadeSlideUp 0.35s ease',
+        flex:      1,
+        display:   'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        opacity:   exiting ? 0 : 1,
+        transform: exiting ? 'translateY(10px)' : 'translateY(0)',
+        transition: 'opacity 0.18s ease, transform 0.18s ease',
       }}>
-        {/* Progress dots */}
-        <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 32 }}>
+
+        {/* Brand mark on slide 1 */}
+        {slide === 0 && (
+          <div style={{
+            width:           44,
+            height:          44,
+            borderRadius:    13,
+            background:      'var(--accent)',
+            display:         'flex',
+            alignItems:      'center',
+            justifyContent:  'center',
+            fontSize:        20,
+            marginBottom:    36,
+            flexShrink:      0,
+            userSelect:      'none',
+          }}>
+            ⏸
+          </div>
+        )}
+
+        {/* Headline — Lora serif italic */}
+        <h1 style={{
+          fontFamily:    'var(--serif)',
+          fontStyle:     'italic',
+          fontWeight:    400,
+          fontSize:      'clamp(38px, 11vw, 52px)',
+          lineHeight:    1.1,
+          letterSpacing: '-0.02em',
+          color:         'var(--ink)',
+          marginBottom:  28,
+          whiteSpace:    'pre-line',
+        }}>
+          {s.headline}
+        </h1>
+
+        {/* Body */}
+        <p style={{
+          fontSize:   16,
+          color:      'var(--ink-2)',
+          lineHeight: 1.65,
+          maxWidth:   300,
+        }}>
+          {s.body}
+        </p>
+      </div>
+
+      {/* Bottom controls — stop propagation so tapping buttons doesn't double-fire */}
+      <div onClick={e => e.stopPropagation()}>
+
+        {/* Progress track */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
           {SLIDES.map((_, i) => (
             <div key={i} style={{
-              width:        i === slide ? 20 : 6,
-              height:       6,
-              borderRadius: 3,
-              background:   i === slide ? 'var(--accent)' : 'var(--border)',
-              transition:   'all 0.3s ease',
+              height:     2,
+              flex:       1,
+              borderRadius: 1,
+              background: i <= slide ? 'var(--accent)' : 'var(--paper-4)',
+              transition: 'background 0.3s',
             }} />
           ))}
         </div>
 
-        {/* Emoji */}
-        <div style={{ fontSize: 56, textAlign: 'center', marginBottom: 20, lineHeight: 1 }}>
-          {s.emoji}
-        </div>
-
-        {/* Text */}
-        <h2 style={{
-          fontSize:      22,
-          fontWeight:    800,
-          letterSpacing: -0.8,
-          color:         'var(--t1)',
-          textAlign:     'center',
-          marginBottom:  12,
-          lineHeight:    1.25,
-        }}>
-          {s.title}
-        </h2>
-        <p style={{
-          fontSize:   15,
-          color:      'var(--t2)',
-          textAlign:  'center',
-          lineHeight: 1.6,
-          marginBottom: 32,
-        }}>
-          {s.body}
-        </p>
-
-        {/* Buttons */}
-        <button
-          onClick={next}
-          className="btn-accent"
-        >
-          {isLast ? 'Get started' : 'Next →'}
+        <button onClick={advance} className="btn-accent">
+          {isLast ? "Let's go →" : 'Continue →'}
         </button>
 
         {!isLast && (
           <button
             onClick={onDone}
-            style={{
-              display:   'block',
-              width:     '100%',
-              marginTop: 12,
-              background: 'none',
-              border:    'none',
-              color:     'var(--t3)',
-              fontSize:  14,
-              cursor:    'pointer',
-              padding:   8,
-              textAlign: 'center',
-            }}
+            className="btn-ghost"
+            style={{ marginTop: 4 }}
           >
             Skip
           </button>

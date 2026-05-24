@@ -619,3 +619,10 @@ input, select, textarea { font-family: inherit; font-size: 16px; touch-action: m
 @keyframes fall {
   to { transform: translateY(110vh) rotate(360deg); opacity: 0; }
 }
+
+/* ── Screen enter — every .p-screen page fades + lifts in ── */
+@keyframes screenIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.p-screen { animation: screenIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) both; }

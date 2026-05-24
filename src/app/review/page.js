@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { getItem, reviewItem, getSavedTotal } from '@/lib/firestore';
@@ -8,7 +8,7 @@ import { getCurrencySymbol } from '@/constants/currency';
 import { MOOD_MAP } from '@/constants/moods';
 import { recordActivity } from '@/hooks/useStreak';
 import LoadingScreen from '@/components/LoadingScreen';
-import { Figure, Arrow, Rule, Mood } from '@/components/Almanac';
+import { Figure, Arrow } from '@/components/Almanac';
 
 const MOOD_COPY = {
   anxious: { color: 'var(--warn)',   lead: 'You were anxious when you added this.', tail: 'That feeling has likely passed.'                        },
@@ -18,6 +18,8 @@ const MOOD_COPY = {
   calm:    { color: 'var(--cool)',  lead: 'You were calm when you added this.',    tail: 'Trust that decision. Or don\'t. Either way, deliberate.'},
   default: { color: 'var(--ink-2)', lead: 'You added this 24 hours ago.',          tail: 'Whatever you felt then may have changed.'               },
 };
+
+const SWIPE_THRESHOLD = 90;
 
 function getHostname(url) {
   try { return new URL(url).hostname.replace('www.', ''); } catch { return ''; }
@@ -43,6 +45,22 @@ export default function ReviewPage() {
   const [confetti,   setConfetti]   = useState(false);
   const [copied,     setCopied]     = useState(false);
 
+  // ── Swipe state ──
+  const bodyRef    = useRef(null);
+  const touchData  = useRef({ x: 0, y: 0, dir: null });
+  const dragXRef   = useRef(0);
+  const [dragX, setDragX] = useState(0);
+  const isDragging = useRef(false);
+
+  // Keep mutable refs current so touch handlers don't go stale
+  const itemRef       = useRef(item);
+  const savedTotalRef = useRef(savedTotal);
+  const busyRef       = useRef(busy);
+  useEffect(() => { itemRef.current = item; },       [item]);
+  useEffect(() => { savedTotalRef.current = savedTotal; }, [savedTotal]);
+  useEffect(() => { busyRef.current = busy; },       [busy]);
+
+  // ── Data load ──
   useEffect(() => {
     if (!authLoading && !user) { router.replace('/auth'); return; }
     if (!user) return;
@@ -66,8 +84,63 @@ export default function ReviewPage() {
     load().catch(() => setPageState('error'));
   }, [user, authLoading]); // eslint-disable-line
 
+  // ── Swipe touch handlers (non-passive so we can preventDefault) ──
+  useEffect(() => {
+    if (pageState !== 'ready') return;
+    const el = bodyRef.current;
+    if (!el) return;
+
+    function onStart(e) {
+      touchData.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, dir: null };
+      isDragging.current = false;
+    }
+
+    function onMove(e) {
+      if (busyRef.current) return;
+      const dx = e.touches[0].clientX - touchData.current.x;
+      const dy = e.touches[0].clientY - touchData.current.y;
+
+      if (!touchData.current.dir && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
+        touchData.current.dir = Math.abs(dx) > Math.abs(dy) * 1.2 ? 'h' : 'v';
+      }
+
+      if (touchData.current.dir === 'h') {
+        e.preventDefault();
+        isDragging.current = true;
+        const clamped = Math.max(-170, Math.min(170, dx));
+        dragXRef.current = clamped;
+        setDragX(clamped);
+      }
+    }
+
+    function onEnd() {
+      isDragging.current = false;
+      const dx = dragXRef.current;
+
+      if (Math.abs(dx) >= SWIPE_THRESHOLD && !busyRef.current && itemRef.current) {
+        const id = new URLSearchParams(window.location.search).get('id');
+        doSubmit(id, itemRef.current, dx > 0 ? 'saved' : 'bought', savedTotalRef.current);
+      } else {
+        dragXRef.current = 0;
+        setDragX(0);
+      }
+      touchData.current.dir = null;
+    }
+
+    el.addEventListener('touchstart', onStart, { passive: true  });
+    el.addEventListener('touchmove',  onMove,  { passive: false });
+    el.addEventListener('touchend',   onEnd,   { passive: true  });
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchmove',  onMove);
+      el.removeEventListener('touchend',   onEnd);
+    };
+  }, [pageState]); // eslint-disable-line
+
   async function doSubmit(itemId, itemData, choice, currentTotal) {
     setBusy(true);
+    dragXRef.current = 0;
+    setDragX(0);
     await reviewItem(itemId, choice);
     recordActivity();
     setDecision(choice);
@@ -102,6 +175,10 @@ export default function ReviewPage() {
   const moodCopy = MOOD_COPY[item?.mood] || MOOD_COPY.default;
   const isSaved  = decision === 'saved';
 
+  // Swipe overlay opacity
+  const heldOpacity   = Math.min(0.7, Math.max(0, (dragX  - 15) / 80));
+  const buyingOpacity = Math.min(0.7, Math.max(0, (-dragX - 15) / 80));
+
   if (authLoading || (pageState === 'loading' && user)) return <LoadingScreen />;
 
   /* ── Error ── */
@@ -121,14 +198,11 @@ export default function ReviewPage() {
     );
   }
 
-  /* ════════════════════════════════════════════
-     DECIDED — outcome screen (light, almanac)
-  ════════════════════════════════════════════ */
+  /* ── Decided ── */
   if (pageState === 'decided') {
     return (
       <div className="p-screen">
         {confetti && <Confetti />}
-
         <div className="p-body">
           {/* Back */}
           <div style={{ padding: '12px 24px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -148,12 +222,11 @@ export default function ReviewPage() {
             </button>
             <div className="eyebrow">{isSaved ? 'HELD' : 'BOUGHT'}</div>
           </div>
-
           <div className="rule" />
 
-          {/* Outcome word */}
+          {/* Outcome */}
           <div style={{ padding: '36px 24px 8px' }}>
-            <div className="display" style={{ fontSize: 52, color: isSaved ? 'var(--good)' : 'var(--warn)' }}>
+            <div className="display" style={{ fontSize: 52, color: isSaved ? 'var(--good)' : 'var(--warn)', fontStyle: 'italic' }}>
               {isSaved ? 'held.' : 'bought.'}
             </div>
             <div style={{ marginTop: 14, fontSize: 15, color: 'var(--ink-2)', lineHeight: 1.55 }}>
@@ -163,7 +236,6 @@ export default function ReviewPage() {
             </div>
           </div>
 
-          {/* Savings counter */}
           {savedTotal > 0 && (
             <div style={{ margin: '28px 24px 0', padding: '18px 0', borderTop: '1px solid var(--rule)', borderBottom: '1px solid var(--rule)', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
               <div className="eyebrow">HELD THIS YEAR</div>
@@ -171,46 +243,19 @@ export default function ReviewPage() {
             </div>
           )}
 
-          {/* Item reference */}
           {item && (
             <div style={{ padding: '24px 24px 0' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 14, alignItems: 'start' }}>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontFamily: 'var(--serif)', fontSize: 18, color: 'var(--ink)', lineHeight: 1.2, marginBottom: 6 }}>
-                    {item.name}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-                    {item.price != null && (
-                      <span className="figure" style={{ fontSize: 16, fontStyle: 'italic' }}>
-                        <span className="curr">{symbol}</span>{item.price}
-                      </span>
-                    )}
-                    {item.mood && <Mood word={item.mood} />}
-                  </div>
-                </div>
-                {item.imageUrl && (
-                  <div style={{ width: 52, height: 52, flexShrink: 0, overflow: 'hidden' }}>
-                    <img src={item.imageUrl} alt={item.name}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                  </div>
-                )}
+              <div style={{ fontFamily: 'var(--serif)', fontSize: 18, color: 'var(--ink)', lineHeight: 1.2, marginBottom: 6 }}>
+                {item.name}
               </div>
+              {item.price != null && (
+                <span className="figure" style={{ fontSize: 16, fontStyle: 'italic' }}>
+                  <span className="curr">{symbol}</span>{item.price}
+                </span>
+              )}
             </div>
           )}
 
-          {item?.url && (
-            <div style={{ padding: '20px 24px 0' }}>
-              <a href={item.url} target="_blank" rel="noopener noreferrer" style={{
-                fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '0.14em',
-                textTransform: 'uppercase', color: 'var(--ink-3)',
-                textDecoration: 'underline', textUnderlineOffset: 3,
-              }}>
-                {getHostname(item.url)} ↗
-              </a>
-            </div>
-          )}
-
-          {/* Actions */}
           <div style={{ padding: '32px 24px 36px' }}>
             {isSaved && (
               <button onClick={handleShare} className="btn-primary" style={{ marginBottom: 10, background: 'var(--ink)' }}>
@@ -226,144 +271,193 @@ export default function ReviewPage() {
     );
   }
 
-  /* ════════════════════════════════════════════
-     READY — decision screen
-  ════════════════════════════════════════════ */
+  /* ── Ready — decision screen with swipe ── */
   return (
-    <div className="p-screen">
-      <div className="p-body">
+    <div className="p-screen" style={{ overflow: 'hidden' }}>
 
-        {/* Top bar */}
+      {/* Body — swipe listeners attach here */}
+      <div ref={bodyRef} className="p-body">
+
+        {/* Swipeable card */}
         <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '16px 20px 12px',
+          transform:  `translateX(${dragX}px) rotate(${dragX * 0.012}deg)`,
+          transition: isDragging.current ? 'none' : 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          willChange: 'transform',
         }}>
-          <button
-            type="button"
-            onClick={() => router.replace('/')}
-            style={{
-              all: 'unset', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 6,
-              fontSize: 13, fontWeight: 500, color: 'var(--ink-3)',
-              padding: '4px 4px', minHeight: 44,
-              WebkitTapHighlightColor: 'transparent',
-            }}
-          >
-            <Arrow dir="left" size={13} color="var(--ink-3)" />
-            Back
-          </button>
-          <div className="eyebrow">
-            {item ? pausedAgo(item.expiresAt) : '…'}
-          </div>
-        </div>
 
-        {/* Full-bleed product image */}
-        {item?.imageUrl ? (
-          <img
-            src={item.imageUrl}
-            alt={item.name}
-            style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', display: 'block' }}
-          />
-        ) : (
+          {/* Top bar */}
           <div style={{
-            width: '100%', aspectRatio: '1 / 1',
-            background: 'var(--paper-3)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            padding: '16px 20px 12px',
           }}>
-            {/* Large mood-coloured initial when no image */}
-            <span style={{
-              fontSize: 80, fontWeight: 800, letterSpacing: '-0.04em',
-              color: moodCopy.color, opacity: 0.18, userSelect: 'none',
-            }}>
-              {item?.name?.[0]?.toUpperCase() || '?'}
-            </span>
+            <button
+              type="button"
+              onClick={() => router.replace('/')}
+              style={{
+                all: 'unset', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 6,
+                fontSize: 13, fontWeight: 500, color: 'var(--ink-3)',
+                padding: '4px 4px', minHeight: 44,
+                WebkitTapHighlightColor: 'transparent',
+              }}
+            >
+              <Arrow dir="left" size={13} color="var(--ink-3)" />
+              Back
+            </button>
+            <div className="eyebrow">{item ? pausedAgo(item.expiresAt) : '…'}</div>
           </div>
-        )}
 
-        {/* Item info */}
-        <div style={{ padding: '20px 24px 0' }}>
-          {item?.url && getHostname(item.url) && (
-            <div className="eyebrow" style={{ marginBottom: 6, color: 'var(--ink-4)' }}>
-              {getHostname(item.url)}
-            </div>
-          )}
-          <div style={{
-            display: 'flex', justifyContent: 'space-between',
-            alignItems: 'baseline', gap: 12,
-          }}>
-            <div style={{
-              fontSize: 22, fontWeight: 700, color: 'var(--ink)',
-              letterSpacing: '-0.02em', lineHeight: 1.1, flex: 1, minWidth: 0,
-            }}>
-              {item?.name}
-            </div>
-            {item?.price != null && (
+          {/* Full-bleed image with swipe overlays */}
+          <div style={{ position: 'relative' }}>
+            {item?.imageUrl ? (
+              <img
+                src={item.imageUrl}
+                alt={item?.name}
+                style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', display: 'block' }}
+                draggable={false}
+              />
+            ) : (
               <div style={{
-                fontSize: 18, fontWeight: 800, color: 'var(--ink-2)',
-                letterSpacing: '-0.03em', flexShrink: 0,
+                width: '100%', aspectRatio: '1 / 1',
+                background: `var(--mood-${item?.mood}-bg, var(--paper-3))`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                {symbol}{item.price}
+                <span style={{
+                  fontSize: 80, fontWeight: 800, letterSpacing: '-0.04em',
+                  color: moodCopy.color, opacity: 0.2, userSelect: 'none',
+                }}>
+                  {item?.name?.[0]?.toUpperCase() || '?'}
+                </span>
+              </div>
+            )}
+
+            {/* HELD overlay (swipe right) */}
+            {dragX > 15 && (
+              <div style={{
+                position: 'absolute', inset: 0, pointerEvents: 'none',
+                background: `rgba(28,74,48,${heldOpacity})`,
+                display: 'flex', alignItems: 'center', padding: '0 28px',
+              }}>
+                <span style={{
+                  color: '#fff', fontSize: 26, fontWeight: 800,
+                  letterSpacing: '-0.03em', textShadow: '0 1px 8px rgba(0,0,0,0.3)',
+                  opacity: Math.min(1, heldOpacity * 2),
+                }}>
+                  HELD ✓
+                </span>
+              </div>
+            )}
+
+            {/* BUYING overlay (swipe left) */}
+            {dragX < -15 && (
+              <div style={{
+                position: 'absolute', inset: 0, pointerEvents: 'none',
+                background: `rgba(184,50,50,${buyingOpacity})`,
+                display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 28px',
+              }}>
+                <span style={{
+                  color: '#fff', fontSize: 26, fontWeight: 800,
+                  letterSpacing: '-0.03em', textShadow: '0 1px 8px rgba(0,0,0,0.3)',
+                  opacity: Math.min(1, buyingOpacity * 2),
+                }}>
+                  BUYING ↗
+                </span>
               </div>
             )}
           </div>
-        </div>
 
-        {/* Mood — the centrepiece, tinted by mood */}
-        {item?.mood && (
-          <div style={{
-            margin: '0', padding: '24px 24px 22px',
-            background: `var(--mood-${item.mood}-bg, var(--paper-3))`,
-          }}>
-            <div className="eyebrow" style={{ marginBottom: 12, opacity: 0.6 }}>
-              When you added it
+          {/* Item info */}
+          <div style={{ padding: '20px 24px 0' }}>
+            {item?.url && getHostname(item.url) && (
+              <div className="eyebrow" style={{ marginBottom: 6, color: 'var(--ink-4)' }}>
+                {getHostname(item.url)}
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+              <div style={{
+                fontSize: 22, fontWeight: 700, color: 'var(--ink)',
+                letterSpacing: '-0.02em', lineHeight: 1.1, flex: 1, minWidth: 0,
+              }}>
+                {item?.name}
+              </div>
+              {item?.price != null && (
+                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink-2)', letterSpacing: '-0.03em', flexShrink: 0 }}>
+                  {symbol}{item.price}
+                </div>
+              )}
             </div>
+          </div>
+
+          {/* Mood — centrepiece with tinted bg */}
+          {item?.mood && (
             <div style={{
-              fontSize: 52, fontWeight: 800, letterSpacing: '-0.04em',
-              lineHeight: 1, color: moodCopy.color, marginBottom: 16,
-              fontStyle: 'italic',
+              margin: '20px 0 0',
+              padding: '24px 24px 22px',
+              background: `var(--mood-${item.mood}-bg, var(--paper-3))`,
             }}>
-              {item.mood}.
+              <div className="eyebrow" style={{ marginBottom: 12, opacity: 0.6 }}>
+                When you added it
+              </div>
+              <div style={{
+                fontSize: 52, fontWeight: 800, letterSpacing: '-0.04em',
+                lineHeight: 1, color: moodCopy.color, marginBottom: 16,
+                fontStyle: 'italic',
+              }}>
+                {item.mood}.
+              </div>
+              <div style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--ink-3)', maxWidth: '30ch' }}>
+                {moodCopy.lead}{' '}
+                <span style={{ color: 'var(--ink-2)', fontWeight: 600 }}>{moodCopy.tail}</span>
+              </div>
             </div>
-            <div style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--ink-3)', maxWidth: '30ch' }}>
-              {moodCopy.lead}{' '}
-              <span style={{ color: 'var(--ink-2)', fontWeight: 600 }}>{moodCopy.tail}</span>
-            </div>
-          </div>
-        )}
+          )}
 
-        {/* Held total */}
-        {savedTotal > 0 && (
+          {/* Held total */}
+          {savedTotal > 0 && (
+            <div style={{
+              margin: '0 24px', padding: '16px 0',
+              borderTop: '1px solid var(--rule)',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <div className="eyebrow">Held this year</div>
+              <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--accent)' }}>
+                {symbol}{savedTotal.toFixed(2)}
+              </div>
+            </div>
+          )}
+
+          {/* Swipe hint */}
           <div style={{
-            margin: '0 24px', padding: '16px 0',
-            borderTop: '1px solid var(--rule)',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            textAlign: 'center', padding: '20px 24px 4px',
+            opacity: dragX !== 0 ? 0 : 0.4,
+            transition: 'opacity 0.2s',
+            pointerEvents: 'none',
           }}>
-            <div className="eyebrow">Held this year</div>
-            <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--accent)' }}>
-              {symbol}{savedTotal.toFixed(2)}
-            </div>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', color: 'var(--ink-3)' }}>
+              ← SWIPE TO DECIDE · OR TAP BELOW →
+            </span>
           </div>
-        )}
 
-        {/* Actions */}
-        <div style={{ padding: '20px 24px 40px' }}>
-          <button
-            className="btn-accent"
-            onClick={() => handleDecision('saved')}
-            disabled={busy}
-          >
-            Let it go →
-          </button>
-          <button
-            className="btn-ghost"
-            onClick={() => handleDecision('bought')}
-            disabled={busy}
-            style={{ marginTop: 4 }}
-          >
-            Still want it — buy it ↗
-          </button>
+          {/* Actions */}
+          <div style={{ padding: '12px 24px 48px' }}>
+            <button
+              className="btn-accent"
+              onClick={() => handleDecision('saved')}
+              disabled={busy}
+            >
+              Let it go →
+            </button>
+            <button
+              className="btn-ghost"
+              onClick={() => handleDecision('bought')}
+              disabled={busy}
+              style={{ marginTop: 4 }}
+            >
+              Still want it — buy it ↗
+            </button>
+          </div>
+
         </div>
-
       </div>
     </div>
   );

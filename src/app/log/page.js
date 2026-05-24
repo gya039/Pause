@@ -25,6 +25,8 @@ export default function LogPage() {
   const [error,           setError]           = useState('');
   const [busy,            setBusy]            = useState(false);
   const [submitted,       setSubmitted]       = useState(false);
+  const [loggedName,      setLoggedName]      = useState('');
+  const [loggedMood,      setLoggedMood]      = useState('');
   const [moodShake,       setMoodShake]       = useState(false);
 
   // 3.1 — PWA share target: pre-fill from browser share sheet params
@@ -44,19 +46,59 @@ export default function LogPage() {
 
   /* ── Success state ── */
   if (submitted) {
+    const MOOD_COLORS = {
+      anxious: { bg: 'var(--mood-anxious-bg)', text: 'var(--mood-anxious-text)' },
+      tired:   { bg: 'var(--mood-tired-bg)',   text: 'var(--mood-tired-text)'   },
+      happy:   { bg: 'var(--mood-happy-bg)',   text: 'var(--mood-happy-text)'   },
+      bored:   { bg: 'var(--mood-bored-bg)',   text: 'var(--mood-bored-text)'   },
+      calm:    { bg: 'var(--mood-calm-bg)',     text: 'var(--mood-calm-text)'     },
+    };
+    const mc = MOOD_COLORS[loggedMood] || { bg: 'var(--paper-3)', text: 'var(--ink-3)' };
+
     return (
-      <div className="screen-full" style={{ alignItems: 'center', justifyContent: 'center', padding: '0 32px', textAlign: 'center' }}>
+      <div style={{
+        minHeight: '100dvh', background: 'var(--paper)',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: '0 32px', textAlign: 'center',
+      }}>
+        {/* Pause mark */}
         <div className="pop-in" style={{
-          width: 88, height: 88, borderRadius: 'var(--r-full)',
-          background: 'var(--accent-bg)', display: 'inline-flex',
-          alignItems: 'center', justifyContent: 'center', fontSize: 44, marginBottom: 24,
+          width: 72, height: 72, borderRadius: 20,
+          background: 'var(--accent)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 32, marginBottom: 28,
         }}>
           ⏸
         </div>
-        <h2 style={{ fontSize: 36, fontWeight: 900, letterSpacing: '-2px', color: 'var(--t1)', marginBottom: 10, lineHeight: 1 }}>
-          Paused.
-        </h2>
-        <p style={{ fontSize: 15, color: 'var(--t3)', lineHeight: 1.65, maxWidth: 220 }}>
+
+        <div className="eyebrow" style={{ color: 'var(--ink-4)', marginBottom: 14 }}>PAUSED</div>
+
+        {loggedName ? (
+          <div style={{
+            fontFamily: 'var(--serif)', fontStyle: 'italic',
+            fontSize: 28, fontWeight: 400, lineHeight: 1.2,
+            letterSpacing: '-0.01em', color: 'var(--ink)',
+            marginBottom: 16, maxWidth: 280,
+          }}>
+            "{loggedName}"
+          </div>
+        ) : null}
+
+        {loggedMood ? (
+          <span style={{
+            display: 'inline-block',
+            background: mc.bg, color: mc.text,
+            padding: '3px 10px', borderRadius: 999,
+            fontSize: 12, fontWeight: 600,
+            letterSpacing: '0.01em', marginBottom: 24,
+            fontFamily: 'var(--sans)',
+          }}>
+            {loggedMood}
+          </span>
+        ) : <div style={{ marginBottom: 24 }} />}
+
+        <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.65, maxWidth: 240 }}>
           Check back in 24 hours.<br />Your future self gets a vote.
         </p>
       </div>
@@ -87,10 +129,12 @@ export default function LogPage() {
     setError('');
     setBusy(true);
     try {
+      setLoggedName(name.trim());
+      setLoggedMood(mood);
       await logItem(user.uid, { name: name.trim(), price, mood, url: url.trim() || null, imageUrl: imageUrl || null });
       recordActivity();
       setSubmitted(true);
-      setTimeout(() => router.replace('/'), 1600);
+      setTimeout(() => router.replace('/'), 1800);
     } catch {
       setError('Something went wrong. Please try again.');
       setBusy(false);
@@ -98,146 +142,173 @@ export default function LogPage() {
   }
 
   return (
-    <div style={{ minHeight: '100dvh', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100dvh', background: 'var(--paper)', display: 'flex', flexDirection: 'column' }}>
 
-      {/* ── Modal header ── */}
-      <div className="sticky-header" style={{ justifyContent: 'space-between' }}>
+      {/* ── Top bar ── */}
+      <div style={{
+        display:    'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding:    'max(18px, calc(env(safe-area-inset-top) + 10px)) 24px 0',
+        flexShrink: 0,
+      }}>
         <button
           type="button"
           onClick={() => router.back()}
           style={{
             width: 36, height: 36, borderRadius: 'var(--r-full)',
-            background: 'var(--surface)', border: '1px solid var(--border)',
+            background: 'var(--paper-3)', border: 'none',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', color: 'var(--t2)', fontSize: 20, fontWeight: 400,
-            fontFamily: 'inherit', flexShrink: 0, boxShadow: 'var(--shadow-xs)',
-            WebkitTapHighlightColor: 'transparent',
+            cursor: 'pointer', color: 'var(--ink-2)', fontSize: 18, fontWeight: 400,
+            fontFamily: 'inherit', WebkitTapHighlightColor: 'transparent',
           }}
         >
           ×
         </button>
-        <span className="sticky-header-title">Pause something</span>
-        <div style={{ width: 36, flexShrink: 0 }} />
+        <div className="eyebrow" style={{ color: 'var(--ink-4)' }}>NEW PAUSE</div>
+        <div style={{ width: 36 }} />
       </div>
 
-      {/* ── Intent cue ── */}
-      <div style={{ padding: '20px 22px 4px' }}>
-        <p style={{ fontSize: 13, color: 'var(--t3)', lineHeight: 1.65, fontStyle: 'italic' }}>
-          Name what you want. You'll decide tomorrow if you still need it.
-        </p>
+      {/* ── Display headline ── */}
+      <div style={{ padding: '28px 24px 0' }}>
+        <h1 style={{
+          fontFamily: 'var(--serif)', fontStyle: 'italic',
+          fontWeight: 400, fontSize: 38, lineHeight: 1.1,
+          letterSpacing: '-0.02em', color: 'var(--ink)', margin: 0,
+        }}>
+          What do you want?
+        </h1>
       </div>
 
-      <form onSubmit={handleSubmit} style={{ padding: '16px 22px', display: 'flex', flexDirection: 'column', gap: 22, flex: 1 }}>
+      <form onSubmit={handleSubmit} style={{
+        padding: '24px 24px 0',
+        display: 'flex', flexDirection: 'column', gap: 28, flex: 1,
+      }}>
 
-        {/* Item name */}
+        {/* ── Name — large statement field ── */}
         <div>
-          <label className="label">What do you want?</label>
           <input
-            className="input-field"
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
-            placeholder="Air Jordan 1s, that lamp, anything…"
+            placeholder="Air Jordans, that lamp, anything…"
             required
             autoFocus
+            style={{
+              width: '100%', background: 'none', border: 'none',
+              borderBottom: '1.5px solid var(--rule)',
+              fontSize: 20, fontWeight: 500, color: 'var(--ink)',
+              fontFamily: 'var(--sans)', letterSpacing: '-0.01em',
+              padding: '8px 0 12px', outline: 'none',
+              borderRadius: 0,
+            }}
           />
         </div>
 
-        {/* Price */}
-        <div>
-          <label className="label">
-            Price <span style={{ fontWeight: 400, color: 'var(--t3)', textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
-          </label>
-          <div style={{ position: 'relative' }}>
-            <span style={{
-              position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)',
-              color: 'var(--t2)', pointerEvents: 'none', fontWeight: 700, fontSize: 15,
-            }}>
-              {symbol}
-            </span>
-            <input
-              className="input-field"
-              type="number"
-              inputMode="decimal"
-              value={price}
-              onChange={e => setPrice(e.target.value)}
-              placeholder="0.00"
-              min="0"
-              step="0.01"
-              style={{ paddingLeft: 36 }}
-            />
-          </div>
-        </div>
+        {/* ── Price + URL — secondary row ── */}
+        <div style={{ display: 'flex', gap: 14 }}>
 
-        {/* URL */}
-        <div>
-          <label className="label">
-            Product link <span style={{ fontWeight: 400, color: 'var(--t3)', textTransform: 'none', letterSpacing: 0 }}>(optional — auto-fetches photo)</span>
-          </label>
-          <div style={{ position: 'relative' }}>
-            <div style={{
-              position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
-              color: 'var(--t3)', pointerEvents: 'none', display: 'flex',
-            }}>
-              <LinkIcon size={16} strokeWidth={2} />
-            </div>
-            <input
-              className="input-field"
-              type="url"
-              value={url}
-              onChange={e => { setUrl(e.target.value); setImageUrl(''); }}
-              onBlur={handleUrlBlur}
-              placeholder="https://..."
-              autoComplete="off"
-              style={{ paddingLeft: 40 }}
-            />
-            {fetchingPreview && (
+          {/* Price */}
+          <div style={{ flex: 1 }}>
+            <label className="label">Price</label>
+            <div style={{ position: 'relative' }}>
               <span style={{
-                position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
-                fontSize: 12, color: 'var(--t3)', fontWeight: 500,
+                position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+                color: 'var(--ink-3)', pointerEvents: 'none', fontWeight: 600, fontSize: 14,
               }}>
-                Fetching…
+                {symbol}
               </span>
-            )}
+              <input
+                className="input-field"
+                type="number"
+                inputMode="decimal"
+                value={price}
+                onChange={e => setPrice(e.target.value)}
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+                style={{ paddingLeft: 34, fontSize: 15 }}
+              />
+            </div>
           </div>
 
-          {imageUrl && (
-            <div style={{ marginTop: 12, position: 'relative', display: 'inline-block' }}>
-              <img src={imageUrl} alt="Preview" style={{
-                width: 88, height: 88, objectFit: 'cover',
-                borderRadius: 'var(--r-sm)', display: 'block',
-                background: 'var(--surface2)', boxShadow: 'var(--shadow-sm)',
-              }} />
-              <button type="button" onClick={() => setImageUrl('')} style={{
-                position: 'absolute', top: -6, right: -6,
-                width: 22, height: 22, borderRadius: '50%',
-                background: 'var(--t1)', color: '#fff', border: 'none', cursor: 'pointer',
-                fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
+          {/* Link */}
+          <div style={{ flex: 1.4 }}>
+            <label className="label">Link <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--ink-4)' }}>→ photo</span></label>
+            <div style={{ position: 'relative' }}>
+              <div style={{
+                position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+                color: 'var(--ink-4)', pointerEvents: 'none', display: 'flex',
               }}>
-                ×
-              </button>
+                <LinkIcon size={15} strokeWidth={2} />
+              </div>
+              <input
+                className="input-field"
+                type="url"
+                value={url}
+                onChange={e => { setUrl(e.target.value); setImageUrl(''); }}
+                onBlur={handleUrlBlur}
+                placeholder="https://…"
+                autoComplete="off"
+                style={{ paddingLeft: 34, fontSize: 15 }}
+              />
+              {fetchingPreview && (
+                <span style={{
+                  position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                  fontSize: 11, color: 'var(--ink-4)',
+                }}>
+                  …
+                </span>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
-        {/* Mood */}
+        {/* Image preview */}
+        {imageUrl && (
+          <div style={{ position: 'relative', display: 'inline-block', marginTop: -12 }}>
+            <img src={imageUrl} alt="Preview" style={{
+              width: 80, height: 80, objectFit: 'cover',
+              borderRadius: 'var(--r-sm)', display: 'block',
+              border: '1px solid var(--rule)',
+            }} />
+            <button type="button" onClick={() => setImageUrl('')} style={{
+              position: 'absolute', top: -6, right: -6,
+              width: 20, height: 20, borderRadius: '50%',
+              background: 'var(--ink)', color: 'var(--paper)', border: 'none',
+              cursor: 'pointer', fontSize: 13,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              ×
+            </button>
+          </div>
+        )}
+
+        {/* ── Mood ── */}
         <div>
-          <label className="label" style={{ color: !mood && moodShake ? 'var(--danger)' : undefined }}>
-            How are you feeling right now? <span style={{ color: 'var(--danger)' }}>*</span>
-          </label>
+          <div style={{ marginBottom: 14 }}>
+            <div style={{
+              fontFamily: 'var(--serif)', fontStyle: 'italic',
+              fontSize: 20, color: 'var(--ink)', marginBottom: 4,
+            }}>
+              How are you feeling?
+              <span style={{ color: 'var(--warn)', fontStyle: 'normal', fontSize: 14, marginLeft: 4 }}>*</span>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.5 }}>
+              Your mood is recorded with the item — you'll see it tomorrow.
+            </div>
+          </div>
           <div className={moodShake ? 'shake' : ''}>
             <MoodPicker value={mood} onChange={v => { setMood(v); setError(''); }} />
           </div>
-          <p style={{ fontSize: 12, color: 'var(--t3)', marginTop: 10, lineHeight: 1.55 }}>
-            Your mood is recorded with the item — you'll see it tomorrow.
-          </p>
         </div>
 
+        {/* Error */}
         {error && (
           <div style={{
-            background: '#FEF2F2', borderRadius: 'var(--r-sm)',
-            padding: '11px 14px', fontSize: 13, color: 'var(--danger)', lineHeight: 1.5,
-            border: '1px solid rgba(185,28,28,0.12)',
+            background: 'var(--bought-bg)', borderRadius: 'var(--r-sm)',
+            padding: '10px 14px', fontSize: 13, color: 'var(--warn)', lineHeight: 1.5,
+            border: '1px solid rgba(184,50,50,0.15)',
           }}>
             {error}
           </div>
@@ -245,8 +316,14 @@ export default function LogPage() {
 
         <div style={{ flex: 1 }} />
 
-        <div style={{ paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}>
-          <button className="btn-accent" type="submit" disabled={busy || !name.trim()}>
+        {/* ── Submit ── */}
+        <div style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}>
+          <button
+            className="btn-accent"
+            type="submit"
+            disabled={busy || !name.trim()}
+            style={{ fontSize: 16 }}
+          >
             {busy ? '…' : 'Pause it for 24 hours ⏸'}
           </button>
         </div>
